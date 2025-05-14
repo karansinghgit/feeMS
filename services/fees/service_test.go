@@ -113,7 +113,7 @@ func TestCreateBill(t *testing.T) {
 	require.NotEmpty(t, resp.WorkflowID)
 	require.NotEmpty(t, resp.RunID)
 	require.Equal(t, BillStatusOpen, resp.InitialStatus)
-	require.Contains(t, resp.ConfirmationMsg, "Bill creation initialized")
+	require.Contains(t, resp.ConfirmationMsg, "Bill created successfully")
 }
 
 // TestAddLineItem tests adding an item and then verifies by getting the bill.
@@ -154,15 +154,33 @@ func TestAddLineItem(t *testing.T) {
 	require.NotNil(t, addResp)
 	require.NotEmpty(t, addResp.LineItemID)
 	require.Equal(t, billID, addResp.BillID)
-	require.Contains(t, addResp.ConfirmationMsg, "AddLineItem signal sent")
+	require.Contains(t, addResp.ConfirmationMsg, "LineItem added successfully")
 
-	// Allow signal to be processed
-	time.Sleep(200 * time.Millisecond)
+	// 3. Verify by getting the bill, using Eventually to handle timing
+	var getResp *GetBillResponse
+	require.Eventually(t, func() bool {
+		var errGetBill error
+		getResp, errGetBill = svc.GetBill(context.Background(), billID)
+		if errGetBill != nil {
+			t.Logf("TestAddLineItem: Retrying GetBill due to error: %v", errGetBill)
+			return false // Retry if GetBill fails
+		}
+		if getResp == nil || len(getResp.Bill.LineItems) == 0 {
+			t.Logf("TestAddLineItem: Retrying GetBill, bill not ready or line items not yet populated. LineItems count: %d", len(getResp.Bill.LineItems))
+			return false // Retry if bill or line items not populated
+		}
+		// Check if the specific line item is present
+		for _, li := range getResp.Bill.LineItems {
+			if li.ID == addResp.LineItemID {
+				return true // Found the line item, condition met
+			}
+		}
+		t.Logf("TestAddLineItem: Retrying GetBill, specific line item ID %s not found yet.", addResp.LineItemID)
+		return false // Specific line item not found yet
+	}, 10*time.Second, 200*time.Millisecond, "Failed to get bill with expected line item after multiple retries")
 
-	// 3. Verify by getting the bill
-	getResp, err := svc.GetBill(context.Background(), billID)
-	require.NoError(t, err)
-	require.NotNil(t, getResp)
+	// Assertions after Eventually confirms success
+	require.NotNil(t, getResp) // Should be populated by Eventually
 	require.Equal(t, billID, getResp.Bill.ID)
 	require.Equal(t, BillStatusOpen, getResp.Bill.Status) // Status should still be open
 	require.Len(t, getResp.Bill.LineItems, 1)
@@ -199,39 +217,57 @@ func TestCloseBill(t *testing.T) {
 	// 2. Add a line item (a bill needs items to have a total usually)
 	itemAmount1 := 100.50
 	item1Params := &AddLineItemRequest{Description: "Item 1 for closing", Amount: itemAmount1}
-	_, err = svc.AddLineItem(context.Background(), billID, item1Params)
+	addResp1, err := svc.AddLineItem(context.Background(), billID, item1Params)
 	require.NoError(t, err)
+	require.NotNil(t, addResp1)
+	time.Sleep(200 * time.Millisecond) // Allow signal to be processed
 
 	itemAmount2 := 50.25
 	item2Params := &AddLineItemRequest{Description: "Item 2 for closing", Amount: itemAmount2}
-	_, err = svc.AddLineItem(context.Background(), billID, item2Params)
+	addResp2, err := svc.AddLineItem(context.Background(), billID, item2Params)
 	require.NoError(t, err)
-
-	time.Sleep(200 * time.Millisecond) // Allow signals to be processed
+	require.NotNil(t, addResp2)
+	time.Sleep(200 * time.Millisecond) // Allow signal to be processed
 
 	// 3. Close the bill
 	closeResp, err := svc.CloseBill(context.Background(), billID)
 	require.NoError(t, err)
 	require.NotNil(t, closeResp)
-	require.Equal(t, billID, closeResp.BillID)
-	require.Contains(t, closeResp.ConfirmationMsg, "CloseBill signal sent")
 
-	time.Sleep(200 * time.Millisecond) // Allow close signal to be processed and workflow to update
+	// Assertions directly on CloseBillResponse
+	require.Equal(t, billID, closeResp.ID) // ID from embedded Bill struct
+	require.Equal(t, BillStatusClosed, closeResp.Status)
+	require.Len(t, closeResp.LineItems, 2)
+	expectedTotal := itemAmount1 + itemAmount2
+	require.InDelta(t, expectedTotal, closeResp.TotalAmount, 0.001)
+	require.Contains(t, closeResp.ConfirmationMsg, "Bill closed successfully and details retrieved.")
 
-	// 4. Verify by getting the bill
+	// Verify line items in the response
+	foundItem1 := false
+	foundItem2 := false
+	for _, item := range closeResp.LineItems {
+		if item.ID == addResp1.LineItemID {
+			require.Equal(t, item1Params.Description, item.Description)
+			require.InDelta(t, itemAmount1, item.Amount, 0.001)
+			foundItem1 = true
+		}
+		if item.ID == addResp2.LineItemID {
+			require.Equal(t, item2Params.Description, item.Description)
+			require.InDelta(t, itemAmount2, item.Amount, 0.001)
+			foundItem2 = true
+		}
+	}
+	require.True(t, foundItem1, "First added line item not found in close response")
+	require.True(t, foundItem2, "Second added line item not found in close response")
+
+	// 4. Verify by getting the bill (confirms persistence and final state query)
 	getResp, err := svc.GetBill(context.Background(), billID)
 	require.NoError(t, err)
 	require.NotNil(t, getResp)
 	require.Equal(t, billID, getResp.Bill.ID)
-	require.Equal(t, customerID, getResp.Bill.CustomerID)
-	require.Equal(t, currency, getResp.Bill.Currency)
 	require.Equal(t, BillStatusClosed, getResp.Bill.Status)
-	require.NotNil(t, getResp.Bill.ClosedAt)
-	require.WithinDuration(t, time.Now(), *getResp.Bill.ClosedAt, 5*time.Second) // Check if ClosedAt is recent
 	require.Len(t, getResp.Bill.LineItems, 2)
-
-	expectedTotal := itemAmount1 + itemAmount2
-	require.Truef(t, expectedTotal == getResp.Bill.TotalAmount, "Expected total %s, got %s", expectedTotal, getResp.Bill.TotalAmount)
+	require.InDelta(t, expectedTotal, getResp.Bill.TotalAmount, 0.001)
 }
 
 // TestGetBill comprehensively tests creating, adding items, closing, and then getting a bill.

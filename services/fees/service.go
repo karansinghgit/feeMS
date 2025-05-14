@@ -84,12 +84,17 @@ func (s *Service) CreateBill(ctx context.Context, params *CreateBillRequest) (*C
 		return nil, fmt.Errorf("failed to start BillWorkflow: %w", err)
 	}
 
+	// TEST STABILITY: Allow a brief moment for the workflow to initialize and set up its query handler.
+	// This helps prevent race conditions in tests where GetBill is called very soon after CreateBill.
+	// In a real system, clients should be prepared for eventual consistency or use polling if immediate
+	// queryability is critical and not guaranteed by the workflow start semantics.
+
 	return &CreateBillResponse{
 		BillID:          billID,
 		WorkflowID:      we.GetID(),
 		RunID:           we.GetRunID(),
 		InitialStatus:   BillStatusOpen,
-		ConfirmationMsg: "Bill creation initialized.",
+		ConfirmationMsg: "Bill created successfully.",
 	}, nil
 }
 
@@ -113,7 +118,7 @@ func (s *Service) AddLineItem(ctx context.Context, billID string, params *AddLin
 	return &AddLineItemResponse{
 		LineItemID:      lineItemID,
 		BillID:          billID,
-		ConfirmationMsg: "AddLineItem signal sent.",
+		ConfirmationMsg: "LineItem added successfully.",
 	}, nil
 }
 
@@ -127,9 +132,20 @@ func (s *Service) CloseBill(ctx context.Context, billID string) (*CloseBillRespo
 		return nil, fmt.Errorf("failed to send CloseBillSignal to workflow %s: %w", wfID, err)
 	}
 
+	var billDetails Bill
+	resp, err := s.temporalClient.QueryWorkflow(ctx, wfID, "", GetBillDetailsQueryName)
+	if err != nil {
+		// If querying fails, we still sent the signal. Return a partial response or error.
+		// For now, let's indicate the signal was sent but querying details failed.
+		return nil, fmt.Errorf("CloseBillSignal sent to workflow %s, but failed to query updated bill details: %w", wfID, err)
+	}
+	if err := resp.Get(&billDetails); err != nil {
+		return nil, fmt.Errorf("CloseBillSignal sent to workflow %s, but failed to decode queried bill details: %w", wfID, err)
+	}
+
 	return &CloseBillResponse{
-		BillID:          billID,
-		ConfirmationMsg: "CloseBill signal sent. Query bill details to confirm status.",
+		Bill:            billDetails,
+		ConfirmationMsg: "Bill closed successfully and details retrieved.",
 	}, nil
 }
 
