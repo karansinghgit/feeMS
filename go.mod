@@ -8,7 +8,7 @@ require (
 	encore.dev v1.46.1
 	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.10.0
-	go.temporal.io/api v1.46.0
+	go.temporal.io/api v1.49.1
 	go.temporal.io/sdk v1.34.0
 )
 

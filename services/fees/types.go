@@ -56,10 +56,9 @@ type AddLineItemRequest struct {
 
 // AddLineItemResponse is the response payload after adding a line item.
 type AddLineItemResponse struct {
-	LineItemID      string     `json:"lineItemId"`
-	BillID          string     `json:"billId"`
-	BillStatus      BillStatus `json:"billStatus"`
-	ConfirmationMsg string     `json:"confirmationMsg"`
+	LineItemID      string `json:"lineItemId"`
+	BillID          string `json:"billId"`
+	ConfirmationMsg string `json:"confirmationMsg"`
 }
 
 // CloseBillResponse is the response payload after closing a bill.
@@ -87,4 +86,60 @@ type ListBillsResponse struct {
 	TotalCount int    `json:"totalCount"`
 	Limit      int    `json:"limit"`
 	Offset     int    `json:"offset"`
+}
+
+// ------- Workflow Types -------
+
+const (
+	UpsertBillActivityName        = "UpsertBillActivity"
+	SaveLineItemActivityName      = "SaveLineItemActivity"
+	UpdateBillOnCloseActivityName = "UpdateBillOnCloseActivity"
+)
+
+const (
+	AddLineItemSignalName   = "AddLineItemSignal"
+	CloseBillSignalName     = "CloseBillSignal"
+	GetBillDetailsQueryName = "GetBillDetailsQuery"
+)
+
+// AddLineItemSignal defines the data for adding a line item.
+type AddLineItemSignal struct {
+	LineItemID  string
+	Description string
+	Amount      float64
+}
+
+type CloseBillSignal struct{}
+
+// BillWorkflowParams defines the parameters for starting the BillWorkflow.
+type BillWorkflowParams struct {
+	BillID     string
+	CustomerID string
+	Currency   string
+}
+
+// UpsertBillActivityParams defines parameters for UpsertBillActivity.
+type UpsertBillActivityParams struct {
+	BillID     string
+	CustomerID string
+	Currency   string
+	Status     BillStatus
+	CreatedAt  time.Time
+}
+
+// SaveLineItemActivityParams defines parameters for SaveLineItemActivity.
+type SaveLineItemActivityParams struct {
+	LineItemID  string
+	BillID      string
+	Description string
+	Amount      float64
+	CreatedAt   time.Time
+}
+
+// UpdateBillOnCloseActivityParams defines parameters for UpdateBillStatusAndTotalActivity.
+type UpdateBillOnCloseActivityParams struct {
+	BillID      string
+	Status      BillStatus
+	TotalAmount float64
+	ClosedAt    time.Time
 }
