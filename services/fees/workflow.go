@@ -108,6 +108,14 @@ func BillWorkflow(ctx workflow.Context, params *BillWorkflowParams) (respBill *B
 			bill.LineItems = append(bill.LineItems, newLineItem)
 			logger.Info("Line item added to workflow state prior to saving", "BillID", bill.ID, "LineItemID", newLineItem.ID, "Amount", newLineItem.Amount)
 
+			// Recalculate total amount after adding the new line item to the workflow state
+			currentTotal := 0.0
+			for _, item := range bill.LineItems {
+				currentTotal += item.Amount
+			}
+			bill.TotalAmount = currentTotal
+			logger.Info("Updated bill.TotalAmount in workflow state", "BillID", bill.ID, "NewTotalAmount", bill.TotalAmount)
+
 			saveLineItemParams := SaveLineItemActivityParams{
 				LineItemID:  newLineItem.ID,
 				BillID:      bill.ID,
@@ -122,6 +130,8 @@ func BillWorkflow(ctx workflow.Context, params *BillWorkflowParams) (respBill *B
 				logger.Error("Failed to execute SaveLineItemActivity", "BillID", bill.ID, "LineItemID", newLineItem.ID, "error", actErr)
 				// The item is already in bill.LineItems, so the workflow state reflects it.
 				// The error is logged, and the workflow continues.
+				// bill.TotalAmount was updated before calling the activity, so it reflects the new item
+				// regardless of activity success for query purposes.
 			} else {
 				logger.Info("Successfully saved line item via activity", "BillID", bill.ID, "LineItemID", newLineItem.ID)
 			}

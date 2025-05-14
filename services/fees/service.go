@@ -3,6 +3,8 @@ package fees
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"time"
 
 	"encore.dev/storage/sqldb"
 	"github.com/google/uuid"
@@ -133,16 +135,56 @@ func (s *Service) CloseBill(ctx context.Context, billID string) (*CloseBillRespo
 	}
 
 	var billDetails Bill
-	resp, err := s.temporalClient.QueryWorkflow(ctx, wfID, "", GetBillDetailsQueryName)
-	if err != nil {
-		// If querying fails, we still sent the signal. Return a partial response or error.
-		// For now, let's indicate the signal was sent but querying details failed.
-		return nil, fmt.Errorf("CloseBillSignal sent to workflow %s, but failed to query updated bill details: %w", wfID, err)
-	}
-	if err := resp.Get(&billDetails); err != nil {
-		return nil, fmt.Errorf("CloseBillSignal sent to workflow %s, but failed to decode queried bill details: %w", wfID, err)
+	var lastQueryError error
+
+	// Retry querying the workflow for a short period to allow for signal processing and state update.
+	// This makes the API call more robust to timing variations.
+	pollingTimeout := time.After(10 * time.Second) // Total timeout for polling
+	retryInterval := 250 * time.Millisecond        // Interval between retries (slightly increased)
+
+	for {
+		select {
+		case <-pollingTimeout:
+			errMsg := fmt.Sprintf("timeout waiting for bill %s to close and become queryable after 10s", billID)
+			if lastQueryError != nil {
+				errMsg = fmt.Sprintf("%s. last query error: %v", errMsg, lastQueryError)
+			}
+			return nil, fmt.Errorf(errMsg)
+		default:
+			// Create a new context with a shorter timeout for each query attempt
+			// to prevent one slow query from blocking the entire polling duration.
+			queryCtx, cancelQueryCtx := context.WithTimeout(ctx, 2*time.Second)
+
+			resp, err := s.temporalClient.QueryWorkflow(queryCtx, wfID, "", GetBillDetailsQueryName)
+			cancelQueryCtx() // Important to call cancel to free resources
+
+			if err != nil {
+				lastQueryError = fmt.Errorf("query attempt for BillWorkflow %s failed: %w", wfID, err)
+				// Log the error for debugging test failures
+				slog.Warn("CloseBill: QueryWorkflow attempt failed", "billID", billID, "workflowID", wfID, "error", err.Error())
+				time.Sleep(retryInterval)
+				continue
+			}
+
+			if err := resp.Get(&billDetails); err != nil {
+				lastQueryError = fmt.Errorf("failed to decode bill details for %s: %w", wfID, err)
+				slog.Warn("CloseBill: Failed to decode bill details", "billID", billID, "workflowID", wfID, "error", err.Error())
+				time.Sleep(retryInterval)
+				continue
+			}
+
+			if billDetails.Status == BillStatusClosed {
+				slog.Info("CloseBill: Successfully queried and confirmed bill closed", "billID", billID, "workflowID", wfID)
+				goto found // exit loop
+			}
+
+			lastQueryError = fmt.Errorf("bill %s queryable but status is %s (expected CLOSED)", billID, billDetails.Status)
+			slog.Warn("CloseBill: Bill not yet closed", "billID", billID, "workflowID", wfID, "status", billDetails.Status)
+			time.Sleep(retryInterval)
+		}
 	}
 
+found: // Label to break out of the loop
 	return &CloseBillResponse{
 		Bill:            billDetails,
 		ConfirmationMsg: "Bill closed successfully and details retrieved.",
