@@ -26,8 +26,12 @@ func BillWorkflow(ctx workflow.Context, params *BillWorkflowParams) (respBill *B
 
 	billID := params.BillID
 	if billID == "" {
-		billID = generateID(ctx)
-		logger.Info("Generated new BillID", "BillID", billID)
+		generatedID, idErr := generateID(ctx)
+		if idErr != nil {
+			logger.Error("Failed to generate BillID", "error", idErr)
+			return nil, fmt.Errorf("failed to generate BillID: %w", idErr)
+		}
+		billID = generatedID
 	}
 
 	createdAt := workflow.Now(ctx)
@@ -86,8 +90,12 @@ func BillWorkflow(ctx workflow.Context, params *BillWorkflowParams) (respBill *B
 
 			lineItemID := signal.LineItemID
 			if lineItemID == "" {
-				lineItemID = generateID(ctx)
-				logger.Info("Generated new LineItemID", "BillID", bill.ID, "LineItemID", lineItemID)
+				generatedID, idErr := generateID(ctx)
+				if idErr != nil {
+					logger.Error("Failed to generate LineItemID for bill", "BillID", bill.ID, "error", idErr)
+					return
+				}
+				lineItemID = generatedID
 			}
 
 			for _, item := range bill.LineItems {
@@ -127,11 +135,7 @@ func BillWorkflow(ctx workflow.Context, params *BillWorkflowParams) (respBill *B
 			// Activity: Save new line item
 			actErr := workflow.ExecuteActivity(ctx, SaveLineItemActivityName, saveLineItemParams).Get(ctx, nil)
 			if actErr != nil {
-				logger.Error("Failed to execute SaveLineItemActivity", "BillID", bill.ID, "LineItemID", newLineItem.ID, "error", actErr)
-				// The item is already in bill.LineItems, so the workflow state reflects it.
-				// The error is logged, and the workflow continues.
-				// bill.TotalAmount was updated before calling the activity, so it reflects the new item
-				// regardless of activity success for query purposes.
+				logger.Error("Failed to execute SaveLineItemActivity", "BillID", bill.ID, "LineItemID", newLineItem.ID, "Description", newLineItem.Description, "Amount", newLineItem.Amount, "error", actErr)
 			} else {
 				logger.Info("Successfully saved line item via activity", "BillID", bill.ID, "LineItemID", newLineItem.ID)
 			}
@@ -186,7 +190,7 @@ func BillWorkflow(ctx workflow.Context, params *BillWorkflowParams) (respBill *B
 }
 
 // Helper to generate UUIDs if needed within workflow/activity (though often IDs are passed in)
-func generateID(ctx workflow.Context) string {
+func generateID(ctx workflow.Context) (string, error) {
 	var id string
 	sideEffectErr := workflow.SideEffect(ctx, func(ctx workflow.Context) interface{} {
 		return uuid.NewString()
@@ -194,9 +198,8 @@ func generateID(ctx workflow.Context) string {
 
 	if sideEffectErr != nil {
 		workflow.GetLogger(ctx).Error("Failed to generate UUID via SideEffect", "error", sideEffectErr)
-		// For simplicity, panicking here. In prod, will handle more gracefully.
-		panic(fmt.Sprintf("failed to generate UUID: %v", sideEffectErr))
+		return "", fmt.Errorf("failed to generate UUID: %w", sideEffectErr)
 	}
 
-	return id
+	return id, nil
 }
