@@ -57,6 +57,7 @@ Before you begin, ensure you have the following installed:
 ├── README.md
 ├── scripts/          # Helper scripts
 │   ├── start-encore.sh
+│   ├── start-frontend.sh
 │   ├── start-temporal.sh
 │   └── run-tests.sh
 └── services/
@@ -103,6 +104,15 @@ This starts a local Temporal server. Keep this terminal window open.
 ./scripts/start-encore.sh
 ```
 This compiles and runs your Encore application. You can access the Encore local development dashboard (usually at `http://localhost:4000`) to view services and make API calls via the API explorer.
+
+### Terminal 3 (Optional): Start Frontend Development Server
+
+The project includes a React frontend application built with TypeScript. To start it, open a third terminal at the project root and run:
+
+```bash
+./scripts/start-frontend.sh
+```
+This script will navigate to the `frontend` directory, install/update dependencies, and start the development server (typically on `http://localhost:3000`). The frontend is configured to connect to the backend API at `http://localhost:4000`.
 
 ## API Documentation
 
