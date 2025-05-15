@@ -1,0 +1,371 @@
+/* Reset and Base Styles */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f4f7f9;
+  color: #333;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.App {
+  /* text-align: center; */ /* Removed for more flexible layout */
+}
+
+.App-header {
+  background-color: #282c34;
+  padding: 20px;
+  color: white;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.App-header h1 {
+  margin: 0;
+  font-size: 1.8em;
+}
+
+main {
+  padding: 0 20px 20px 20px;
+}
+
+/* Bill Manager Layout */
+.bill-manager-container {
+  display: flex;
+  flex-wrap: wrap; /* Allow wrapping for smaller screens if needed */
+  gap: 20px;
+}
+
+.bill-manager-main-column {
+  flex: 1;
+  min-width: 300px; /* Minimum width for the main column */
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.bill-manager-detail-column {
+  flex: 1.5; /* Detail column can be wider */
+  min-width: 350px; /* Minimum width for the detail column */
+}
+
+.bill-manager-detail-column.placeholder {
+  display: flex;
+  align-items: flex-start; /* Align placeholder card to the top */
+}
+
+/* Card Styling */
+.card {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+}
+
+.card h2, .card h3, .card h4, .card h5 {
+  margin-top: 0;
+  color: #2c3e50;
+}
+
+/* Form Styling */
+.bill-form .form-group {
+  margin-bottom: 15px;
+}
+
+.bill-form label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #555;
+}
+
+.bill-form input[type="text"],
+.bill-form input[type="number"],
+.bill-form select {
+  width: calc(100% - 20px); /* Full width minus padding */
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1em;
+  box-sizing: border-box;
+}
+
+.bill-form input:focus,
+.bill-form select:focus {
+  border-color: #61dafb;
+  box-shadow: 0 0 0 2px rgba(97, 218, 251, 0.2);
+  outline: none;
+}
+
+/* Button Styling */
+.btn {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1em;
+  font-weight: 600;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-primary {
+  background-color: #61dafb;
+  color: #282c34;
+}
+
+.btn-primary:hover {
+  background-color: #4ca8d1;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-secondary {
+  background-color: #e0e0e0;
+  color: #333;
+}
+
+.btn-secondary:hover {
+  background-color: #c7c7c7;
+}
+
+.btn-warning {
+  background-color: #f39c12;
+  color: #fff;
+}
+.btn-warning:hover {
+  background-color: #e67e22;
+}
+
+.btn:disabled {
+  background-color: #ccc;
+  color: #888;
+  cursor: not-allowed;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.9em;
+}
+
+/* Bill List Specifics */
+.bill-list-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.bill-list-controls label {
+  font-weight: 600;
+}
+
+.bill-list-controls select {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  min-width: 150px;
+}
+
+.bill-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.bill-item {
+  padding: 15px;
+  margin-bottom: 10px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.bill-item:hover {
+  background-color: #f9f9f9;
+  border-color: #61dafb;
+}
+
+.bill-item.selected {
+  background-color: #e6f7ff;
+  border-left: 4px solid #61dafb;
+  font-weight: bold;
+}
+
+.bill-item p {
+  margin: 5px 0;
+  font-size: 0.95em;
+}
+
+.bill-item .bill-item-summary {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.status-badge {
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.8em;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.status-badge.status-open {
+  background-color: #2ecc71;
+  color: white;
+}
+
+.status-badge.status-closed {
+  background-color: #e74c3c;
+  color: white;
+}
+.status-badge.status-pending {
+  background-color: #f39c12;
+  color: white;
+}
+
+/* Bill Details Card */
+.bill-details-card {
+  position: relative; /* For positioning close button */
+}
+
+.btn-close-details {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #777;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-close-details:hover {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.bill-details-card p {
+  margin: 8px 0;
+  font-size: 1em;
+}
+
+.bill-details-card h4 {
+  margin-top: 20px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+}
+
+.line-item-list {
+  list-style-type: none;
+  padding: 0;
+}
+
+.line-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.line-item:last-child {
+  border-bottom: none;
+}
+
+.add-line-item-form-container {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+/* Alerts and Notifications */
+.alert {
+  padding: 15px;
+  margin: 15px 0;
+  border-radius: 4px;
+  border: 1px solid transparent;
+}
+
+.alert p {
+  margin: 0;
+}
+
+.alert-success {
+  background-color: #d4edda;
+  border-color: #c3e6cb;
+  color: #155724;
+}
+
+.alert-danger {
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
+}
+
+/* Loading and Empty States */
+.loading-indicator p,
+.empty-state p {
+  color: #777;
+  font-style: italic;
+  padding: 15px;
+  text-align: center;
+}
+
+.empty-details-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px; /* Ensure it has some height */
+  text-align: center;
+  width: 100%;
+}
+
+.empty-details-placeholder p {
+  font-size: 1.1em;
+  color: #888;
+}
+
+
+/* Responsive adjustments (simple example) */
+@media (max-width: 768px) {
+  .bill-manager-container {
+    flex-direction: column;
+  }
+
+  .bill-manager-main-column,
+  .bill-manager-detail-column {
+    flex: none; /* Reset flex growth */
+    width: 100%;
+  }
+
+  .bill-list-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bill-list-controls select,
+  .bill-list-controls button {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+}
