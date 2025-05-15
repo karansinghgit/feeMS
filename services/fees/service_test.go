@@ -165,12 +165,12 @@ func TestAddLineItem(t *testing.T) {
 			t.Logf("TestAddLineItem: Retrying GetBill due to error: %v", errGetBill)
 			return false // Retry if GetBill fails
 		}
-		if getResp == nil || len(getResp.Bill.LineItems) == 0 {
-			t.Logf("TestAddLineItem: Retrying GetBill, bill not ready or line items not yet populated. LineItems count: %d", len(getResp.Bill.LineItems))
+		if getResp == nil || len(getResp.RetrievedBill.LineItems) == 0 {
+			t.Logf("TestAddLineItem: Retrying GetBill, bill not ready or line items not yet populated. LineItems count: %d", len(getResp.RetrievedBill.LineItems))
 			return false // Retry if bill or line items not populated
 		}
 		// Check if the specific line item is present
-		for _, li := range getResp.Bill.LineItems {
+		for _, li := range getResp.RetrievedBill.LineItems {
 			if li.ID == addResp.LineItemID {
 				return true // Found the line item, condition met
 			}
@@ -181,12 +181,12 @@ func TestAddLineItem(t *testing.T) {
 
 	// Assertions after Eventually confirms success
 	require.NotNil(t, getResp) // Should be populated by Eventually
-	require.Equal(t, billID, getResp.Bill.ID)
-	require.Equal(t, BillStatusOpen, getResp.Bill.Status) // Status should still be open
-	require.Len(t, getResp.Bill.LineItems, 1)
-	require.Equal(t, params.Description, getResp.Bill.LineItems[0].Description)
-	require.True(t, itemAmount == getResp.Bill.LineItems[0].Amount)
-	require.Equal(t, addResp.LineItemID, getResp.Bill.LineItems[0].ID)
+	require.Equal(t, billID, getResp.RetrievedBill.ID)
+	require.Equal(t, BillStatusOpen, getResp.RetrievedBill.Status) // Status should still be open
+	require.Len(t, getResp.RetrievedBill.LineItems, 1)
+	require.Equal(t, params.Description, getResp.RetrievedBill.LineItems[0].Description)
+	require.True(t, itemAmount == getResp.RetrievedBill.LineItems[0].Amount)
+	require.Equal(t, addResp.LineItemID, getResp.RetrievedBill.LineItems[0].ID)
 }
 
 // TestCloseBill tests closing a bill and then verifies its status and total.
@@ -264,10 +264,10 @@ func TestCloseBill(t *testing.T) {
 	getResp, err := svc.GetBill(context.Background(), billID)
 	require.NoError(t, err)
 	require.NotNil(t, getResp)
-	require.Equal(t, billID, getResp.Bill.ID)
-	require.Equal(t, BillStatusClosed, getResp.Bill.Status)
-	require.Len(t, getResp.Bill.LineItems, 2)
-	require.InDelta(t, expectedTotal, getResp.Bill.TotalAmount, 0.001)
+	require.Equal(t, billID, getResp.RetrievedBill.ID)
+	require.Equal(t, BillStatusClosed, getResp.RetrievedBill.Status)
+	require.Len(t, getResp.RetrievedBill.LineItems, 2)
+	require.InDelta(t, expectedTotal, getResp.RetrievedBill.TotalAmount, 0.001)
 }
 
 // TestGetBill comprehensively tests creating, adding items, closing, and then getting a bill.
@@ -296,13 +296,13 @@ func TestGetBill(t *testing.T) {
 	getRespInitial, err := svc.GetBill(context.Background(), billID)
 	require.NoError(t, err)
 	require.NotNil(t, getRespInitial)
-	require.Equal(t, billID, getRespInitial.Bill.ID)
-	require.Equal(t, customerID, getRespInitial.Bill.CustomerID)
-	require.Equal(t, currency, getRespInitial.Bill.Currency)
-	require.Equal(t, BillStatusOpen, getRespInitial.Bill.Status)
-	require.Empty(t, getRespInitial.Bill.LineItems)
-	require.True(t, getRespInitial.Bill.TotalAmount == 0)
-	require.Nil(t, getRespInitial.Bill.ClosedAt)
+	require.Equal(t, billID, getRespInitial.RetrievedBill.ID)
+	require.Equal(t, customerID, getRespInitial.RetrievedBill.CustomerID)
+	require.Equal(t, currency, getRespInitial.RetrievedBill.Currency)
+	require.Equal(t, BillStatusOpen, getRespInitial.RetrievedBill.Status)
+	require.Empty(t, getRespInitial.RetrievedBill.LineItems)
+	require.True(t, getRespInitial.RetrievedBill.TotalAmount == 0)
+	require.Nil(t, getRespInitial.RetrievedBill.ClosedAt)
 
 	// 2. Add a line item
 	item1Desc := "Delicious Ramen"
@@ -319,11 +319,11 @@ func TestGetBill(t *testing.T) {
 	getRespAfterItem1, err := svc.GetBill(context.Background(), billID)
 	require.NoError(t, err)
 	require.NotNil(t, getRespAfterItem1)
-	require.Equal(t, BillStatusOpen, getRespAfterItem1.Bill.Status)
-	require.Len(t, getRespAfterItem1.Bill.LineItems, 1)
-	require.Equal(t, lineItemID1, getRespAfterItem1.Bill.LineItems[0].ID)
-	require.Equal(t, item1Desc, getRespAfterItem1.Bill.LineItems[0].Description)
-	require.True(t, item1Amount == getRespAfterItem1.Bill.LineItems[0].Amount)
+	require.Equal(t, BillStatusOpen, getRespAfterItem1.RetrievedBill.Status)
+	require.Len(t, getRespAfterItem1.RetrievedBill.LineItems, 1)
+	require.Equal(t, lineItemID1, getRespAfterItem1.RetrievedBill.LineItems[0].ID)
+	require.Equal(t, item1Desc, getRespAfterItem1.RetrievedBill.LineItems[0].Description)
+	require.True(t, item1Amount == getRespAfterItem1.RetrievedBill.LineItems[0].Amount)
 	// TotalAmount is usually calculated on close, so it might still be zero or reflect running total if workflow updates it early
 	// For this test, let's assume it's only final on close, so no strong assertion on TotalAmount yet.
 
@@ -343,13 +343,13 @@ func TestGetBill(t *testing.T) {
 	getRespAfterItem2, err := svc.GetBill(context.Background(), billID)
 	require.NoError(t, err)
 	require.NotNil(t, getRespAfterItem2)
-	require.Equal(t, BillStatusOpen, getRespAfterItem2.Bill.Status)
-	require.Len(t, getRespAfterItem2.Bill.LineItems, 2)
+	require.Equal(t, BillStatusOpen, getRespAfterItem2.RetrievedBill.Status)
+	require.Len(t, getRespAfterItem2.RetrievedBill.LineItems, 2)
 
 	// Check items are present (order might not be guaranteed by map iteration in workflow, so check both)
 	foundItem1 := false
 	foundItem2 := false
-	for _, item := range getRespAfterItem2.Bill.LineItems {
+	for _, item := range getRespAfterItem2.RetrievedBill.LineItems {
 		if item.ID == lineItemID1 {
 			require.Equal(t, item1Desc, item.Description)
 			require.True(t, item1Amount == item.Amount)
@@ -375,16 +375,16 @@ func TestGetBill(t *testing.T) {
 	getRespFinal, err := svc.GetBill(context.Background(), billID)
 	require.NoError(t, err)
 	require.NotNil(t, getRespFinal)
-	require.Equal(t, billID, getRespFinal.Bill.ID)
-	require.Equal(t, customerID, getRespFinal.Bill.CustomerID)
-	require.Equal(t, currency, getRespFinal.Bill.Currency)
-	require.Equal(t, BillStatusClosed, getRespFinal.Bill.Status)
-	require.Len(t, getRespFinal.Bill.LineItems, 2) // Still 2 items
-	require.NotNil(t, getRespFinal.Bill.ClosedAt)
-	require.WithinDuration(t, time.Now(), *getRespFinal.Bill.ClosedAt, 5*time.Second)
+	require.Equal(t, billID, getRespFinal.RetrievedBill.ID)
+	require.Equal(t, customerID, getRespFinal.RetrievedBill.CustomerID)
+	require.Equal(t, currency, getRespFinal.RetrievedBill.Currency)
+	require.Equal(t, BillStatusClosed, getRespFinal.RetrievedBill.Status)
+	require.Len(t, getRespFinal.RetrievedBill.LineItems, 2) // Still 2 items
+	require.NotNil(t, getRespFinal.RetrievedBill.ClosedAt)
+	require.WithinDuration(t, time.Now(), *getRespFinal.RetrievedBill.ClosedAt, 5*time.Second)
 
 	expectedTotalAmount := item1Amount + item2Amount
-	require.Truef(t, expectedTotalAmount == getRespFinal.Bill.TotalAmount, "Expected total amount %s, got %s", expectedTotalAmount, getRespFinal.Bill.TotalAmount)
+	require.Truef(t, expectedTotalAmount == getRespFinal.RetrievedBill.TotalAmount, "Expected total amount %s, got %s", expectedTotalAmount, getRespFinal.RetrievedBill.TotalAmount)
 }
 
 // TestListBills tests listing bills with various filters.
@@ -437,7 +437,7 @@ func TestListBills(t *testing.T) {
 	// Wait for bill 2 to be marked as closed in the workflow state by querying it directly.
 	require.Eventually(t, func() bool {
 		getResp, err := svc.GetBill(ctx, bill2ID)
-		return err == nil && getResp.Bill.Status == BillStatusClosed && getResp.Bill.ClosedAt != nil
+		return err == nil && getResp.RetrievedBill.Status == BillStatusClosed && getResp.RetrievedBill.ClosedAt != nil
 	}, 10*time.Second, 200*time.Millisecond, "Bill 2 should be closed and ClosedAt set before listing")
 
 	// --- Test Case 1: List OPEN bills ---
@@ -498,7 +498,7 @@ func TestListBills(t *testing.T) {
 		// Wait for this bill to be marked as closed
 		require.Eventually(t, func() bool {
 			getResp, err := svc.GetBill(context.Background(), closedBillIDInTest)
-			return err == nil && getResp.Bill.Status == BillStatusClosed && getResp.Bill.ClosedAt != nil
+			return err == nil && getResp.RetrievedBill.Status == BillStatusClosed && getResp.RetrievedBill.ClosedAt != nil
 		}, 10*time.Second, 200*time.Millisecond, "Bill should be closed and ClosedAt set before listing")
 
 		// Verify listing closed bills - should include bill2ID (from outer scope) and closedBillIDInTest (from this scope)
@@ -567,7 +567,7 @@ func TestListBills(t *testing.T) {
 		// Wait for bill2_local to be closed
 		require.Eventually(t, func() bool {
 			getResp, err := svc.GetBill(context.Background(), bill2ID_local)
-			return err == nil && getResp.Bill.Status == BillStatusClosed
+			return err == nil && getResp.RetrievedBill.Status == BillStatusClosed
 		}, 10*time.Second, 200*time.Millisecond)
 
 		t.Logf("ListAllBills: Finished creating local bills. bill1ID_local=%s (OPEN), bill2ID_local=%s (CLOSED)", bill1ID_local, bill2ID_local)

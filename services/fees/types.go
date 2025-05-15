@@ -69,7 +69,7 @@ type CloseBillResponse struct {
 
 // GetBillResponse is the response payload for retrieving a bill.
 type GetBillResponse struct {
-	Bill
+	RetrievedBill Bill `json:"bill"`
 }
 
 // ListBillsParams defines parameters for listing bills.

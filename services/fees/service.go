@@ -195,16 +195,31 @@ found: // Label to break out of the loop
 //
 // encore:api public method=GET path=/bills/:billID
 func (s *Service) GetBill(ctx context.Context, billID string) (*GetBillResponse, error) {
+	slog.Info("GetBill: Entered function", "billID", billID)
 	wfID := "bill-" + billID
 	var billDetails Bill
 	resp, err := s.temporalClient.QueryWorkflow(ctx, wfID, "", GetBillDetailsQueryName)
 	if err != nil {
+		slog.Error("GetBill: QueryWorkflow failed", "billID", billID, "workflowID", wfID, "error", err.Error())
 		return nil, fmt.Errorf("failed to query BillWorkflow %s: %w", wfID, err)
 	}
+
+	slog.Info("GetBill: QueryWorkflow successful", "billID", billID, "workflowID", wfID)
+
 	if err := resp.Get(&billDetails); err != nil {
+		slog.Error("GetBill: resp.Get failed to decode billDetails", "billID", billID, "workflowID", wfID, "error", err.Error())
 		return nil, fmt.Errorf("failed to decode bill details from workflow %s: %w", wfID, err)
 	}
-	return &GetBillResponse{Bill: billDetails}, nil
+
+	// Log the successfully decoded billDetails. Be mindful of logging potentially large/sensitive data in a real production system.
+	// For debugging, this is useful.
+	slog.Info("GetBill: billDetails decoded successfully", "billID", billID, "workflowID", wfID, "details", fmt.Sprintf("%+v", billDetails))
+
+	responsePayload := &GetBillResponse{
+		RetrievedBill: billDetails,
+	}
+	slog.Info("GetBill: Prepared response payload", "billID", billID, "payload", fmt.Sprintf("%+v", responsePayload))
+	return responsePayload, nil
 }
 
 // ListBills lists all bills, with optional filtering.
