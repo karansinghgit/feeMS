@@ -1,182 +1,137 @@
-# REST API Starter
+# feeMS - Fees Management Service
 
-This is a RESTful API Starter with a single Hello World API endpoint.
+This project implements a backend service in Golang to manage bill creation, line item accrual, and bill closure.
 
-## Prerequisites 
+It uses Encore for the API layer and infrastructure provisioning, and Temporal for durable workflow execution and state management of individual bills.
 
-**Install Encore:**
-- **macOS:** `brew install encoredev/tap/encore`
-- **Linux:** `curl -L https://encore.dev/install.sh | bash`
-- **Windows:** `iwr https://encore.dev/install.ps1 | iex`
+## High-Level Design Overview
 
-## Create app
+The `fees` service manages the lifecycle of bills. Each bill is represented by a durable Temporal Workflow instance.
 
-Create a local app from this template:
+- **API Layer (Encore)**: Exposes RESTful endpoints for creating bills, adding line items, closing bills, and retrieving bill information. Defined in `services/fees/service.go`.
+- **Workflow Layer (Temporal)**: Manages the state and business logic for individual bills. This includes handling signals for adding line items or closing the bill, and processing queries for the bill's current state. Defined in `services/fees/workflow.go`.
+- **Activities (Temporal)**: Perform side effects from workflows, such as creating/updating bill records and line items in the Postgres database. Defined in `services/fees/activities.go`.
+- **Database (Postgres via Encore sqldb)**: Stores bill summaries and line items. The schema is defined in `services/fees/migrations/`.
+- **Types (Go structs)**: Shared data structures for API requests/responses, workflow parameters, and internal state are located in `services/fees/types.go`.
+
+### Data Flow Example: Creating a Bill
+
+1.  Client sends a `POST /bills` request to the Encore API.
+2.  The `CreateBill` handler in `service.go` generates a unique `BillID`.
+3.  It then initiates a new `BillWorkflow` instance via the Temporal client, passing the `BillID` and other parameters.
+4.  The `BillWorkflow` starts, initializes its state (e.g., status to `OPEN`), and executes the `UpsertBillActivity`.
+5.  The `UpsertBillActivity` writes the initial bill metadata to the `bills` table in the Postgres database.
+6.  The API handler returns the `BillID` and other relevant information to the client.
+
+### Data Flow Example: Adding a Line Item
+
+1.  Client sends a `POST /bills/{billId}/items` request (Note: path might be `/bills/{billId}/line-items` depending on actual service definition, confirm from `service.go`).
+2.  The `AddLineItem` handler in `service.go` sends an `AddLineItemSignal` to the specific `BillWorkflow` instance identified by `billId`.
+3.  The workflow receives the signal, updates its internal state (adds the line item, recalculates the total).
+4.  It then executes the `SaveLineItemActivity` to persist the line item and `UpsertBillActivity` (or a dedicated update activity) to update the bill's `total_amount` and `updated_at` timestamp in the Postgres `bills` table.
+
+## Tech Stack
+
+*   Go (Golang)
+*   Encore (for API and cloud infrastructure)
+*   Temporal (for durable workflows)
+*   Local Temporal Development Server (e.g., `temporal server start-dev`)
+*   PostgreSQL (via Encore's `sqldb` for data persistence)
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+- [Go](https://golang.org/dl/) (version 1.21 or newer recommended)
+- [Encore CLI](https://encore.dev/docs/install)
+- [Temporal CLI](https://docs.temporal.io/cli#installation) (for running the local Temporal development server and interacting with it)
+
+## Project Structure
+
+```
+.
+├── .gitignore
+├── encore.app        # Encore application definition
+├── go.mod
+├── go.sum
+├── README.md
+├── scripts/          # Helper scripts
+│   ├── start-encore.sh
+│   ├── start-temporal.sh
+│   └── run-tests.sh
+└── services/
+    └── fees/           # Encore service for the fees API
+        ├── service.go    # Service definition, API endpoints
+        ├── workflow.go   # Temporal workflow definition, signal/query handlers
+        ├── activities.go # Temporal activities
+        ├── types.go      # Go structs for API, workflow, and internal state
+        ├── migrations/   # SQL database migrations
+        │   ├── 001_create_bills_table.up.sql
+        │   ├── 001_create_bills_table.down.sql
+        │   ├── 002_create_line_items_table.up.sql
+        │   └── 002_create_line_items_table.down.sql
+        ├── service_test.go # Integration tests for the service
+        └── workflow_test.go # Temporal workflow replay tests
+```
+
+## Setup
+
+1.  **Clone the repository**:
+    ```bash
+    git clone <your-repo-url>
+    cd feeMS
+    ```
+2.  **Ensure scripts are executable**:
+    ```bash
+    chmod +x scripts/*.sh
+    ```
+
+## Running the Application
+
+To run the application, you'll need two separate terminals opened at the project root (`/Users/karansingh/projects/temporal/feeMS`):
+
+**Terminal 1: Start Temporal Development Server**
 
 ```bash
-encore app create my-app-name --example=hello-world
+./scripts/start-temporal.sh
 ```
+This starts a local Temporal server. Keep this terminal window open.
 
-## Run app locally
-
-Run this command from your application's root folder:
+**Terminal 2: Start Encore Application**
 
 ```bash
-encore run
+./scripts/start-encore.sh
 ```
-## Using the API
+This compiles and runs your Encore application. You can access the Encore local development dashboard (usually at `http://localhost:4000`) to view services and make API calls via the API explorer.
 
-To see that your app is running, you can ping the API.
+## API Documentation
 
-```bash
-curl http://localhost:4000/hello/World
-```
+The service exposes RESTful API endpoints. Refer to `services/fees/types.go` and `services/fees/service.go` for detailed request/response structures and paths.
 
-### Local Development Dashboard
+### Bill Management
 
-While `encore run` is running, open [http://localhost:9400/](http://localhost:9400/) to access Encore's [local developer dashboard](https://encore.dev/docs/go/observability/dev-dash).
-
-Here you can see traces for all requests that you made, see your architecture diagram (just a single service for this simple example), and view API documentation in the Service Catalog.
-
-## Development
-
-### Add a new service
-
-With Encore.go you can create a new service by creating a regular Go package and then defining at least one API within it. Encore recognizes this as a service, and uses the package name as the service name.
-
-On disk it might look like this:
-
-```
-/my-app
-├── encore.app          // ... and other top-level project files
-│
-├── hello               // hello service (a Go package)
-│   ├── hello.go        // hello service code
-│   └── hello_test.go   // tests for hello service
-│
-└── world               // world service (a Go package)
-    └── world.go        // world service code
-```
-
-Learn more in the docs: https://encore.dev/docs/go/primitives/services
-
-### Create an API endpoint
-
-With Encore.go you can turn a regular Go function into an API endpoint by adding the `//encore:api` annotation to it. This tells Encore that the function should be exposed as an API endpoint and Encore will automatically generate the necessary boilerplate at compile-time.
-
-For example, in this app you app will have a `hello` service with a `Ping` API endpoint:
-
-```go
-//encore:api public path=/hello/:name
-func World(ctx context.Context, name string) (*Response, error) {
-	msg := "Hello, " + name + "!"
-	return &Response{Message: msg}, nil
-}
-
-type Response struct {
-	Message string
-}
-```
-
-You can define different access controls using:
-- `//encore:api public` - Public API endpoint
-- `//encore:api private` - Defines a private API that is never accessible to the outside world. It can only be called from other services in your app
-- `//encore:api auth` - Defines an API that anybody can call, but requires valid authentication
-
-Learn more in the docs: https://encore.dev/docs/go/primitives/defining-apis
-
-### Service-to-service API calls
-
-Calling an API endpoint looks like a regular function call with Encore.go. To call an endpoint you first import the other service as a Go package using `import "encore.app/package-name"`.
-
-In the example below, we import the service `hello` and call the `Ping` endpoint using a function call to `hello.Ping`:
-
-```go
-import "encore.app/hello" // import service
-
-//encore:api public
-func MyOtherAPI(ctx context.Context) error {
-    resp, err := hello.Ping(ctx, &hello.PingParams{Name: "World"})
-    if err == nil {
-        log.Println(resp.Message) // "Hello, World!"
-    }
-    return err
-}
-```
-
-Learn more in the docs: https://encore.dev/docs/go/primitives/api-calls
-
-### Add a database
-
-To create a database, import `encore.dev/storage/sqldb` and call `new SQLDatabase`, assigning the result to a top-level variable. For example:
-
-```go
-import "encore.dev/storage/sqldb"
-
-// Create the todo database and assign it to the "tododb" variable
-var tododb = sqldb.NewDatabase("todo", sqldb.DatabaseConfig{
-	Migrations: "./migrations",
-})
-```
-
-Then create a directory `migrations` inside the service directory and add a migration file `0001_create_table.up.sql` to define the database schema. For example:
-
-```sql
-CREATE TABLE todo_item (
-  id BIGSERIAL PRIMARY KEY,
-  title TEXT NOT NULL,
-  done BOOLEAN NOT NULL DEFAULT false
-  -- etc...
-);
-```
-
-Once you've added a migration, restart your app with `encore run` to start up the database and apply the migration. Keep in mind that you need to have [Docker](https://docker.com) installed and running to start the database.
-
-Learn more in the docs: https://encore.dev/docs/go/primitives/databases
-
-### Learn more
-
-There are many more features to explore in Encore.go, for example:
-
-- [Cron jobs](https://encore.dev/docs/go/primitives/cron-jobs)
-- [Pub/Sub](https://encore.dev/docs/go/primitives/pubsub)
-- [Object Storage](https://encore.dev/docs/go/primitives/object-storage)
-- [Secrets](https://encore.dev/docs/go/primitives/secrets)
-- [Authentication handlers](https://encore.dev/docs/go/develop/auth)
-- [Middleware](https://encore.dev/docs/go/develop/middleware)
-
-## Deployment
-
-### Self-hosting
-
-See the [self-hosting instructions](https://encore.dev/docs/go/self-host/docker-build) for how to use `encore build docker` to create a Docker image and configure it.
-
-### Encore Cloud Platform
-
-Deploy your application to a free staging environment in Encore's development cloud using `git push encore`:
-
-```bash
-git add -A .
-git commit -m 'Commit message'
-git push encore
-```
-
-You can also open your app in the [Cloud Dashboard](https://app.encore.dev) to integrate with GitHub, or connect your AWS/GCP account, enabling Encore to automatically handle cloud deployments for you.
-
-## Link to GitHub
-
-Follow these steps to link your app to GitHub:
-
-1. Create a GitHub repo, commit and push the app.
-2. Open your app in the [Cloud Dashboard](https://app.encore.dev).
-3. Go to **Settings ➔ GitHub** and click on **Link app to GitHub** to link your app to GitHub and select the repo you just created.
-4. To configure Encore to automatically trigger deploys when you push to a specific branch name, go to the **Overview** page for your intended environment. Click on **Settings** and then in the section **Branch Push** configure the **Branch name** and hit **Save**.
-5. Commit and push a change to GitHub to trigger a deploy.
-
-[Learn more in the docs](https://encore.dev/docs/platform/integrations/github)
+*   **`POST /bills`**: Create a new bill.
+    *   Request Body: `fees.CreateBillRequest`
+    *   Response Body: `fees.CreateBillResponse`
+*   **`POST /bills/:billID/items`**: Add a line item to an existing bill.
+    *   Path Parameter: `billID` (string) - The ID of the bill.
+    *   Request Body: `fees.AddLineItemRequest`
+    *   Response Body: `fees.AddLineItemResponse`
+*   **`POST /bills/:billID/close`**: Close an existing bill.
+    *   Path Parameter: `billID` (string) - The ID of the bill.
+    *   Response Body: `fees.CloseBillResponse` (contains the full bill details)
+*   **`GET /bills/:billID`**: Retrieve details for a specific bill.
+    *   Path Parameter: `billID` (string) - The ID of the bill.
+    *   Response Body: `fees.GetBillResponse` (contains the full bill details)
+*   **`GET /bills`**: List all bills, optionally filtering by status.
+    *   Query Parameter: `status` (string, optional) - Filter by status (e.g., `OPEN`, `CLOSED`).
+    *   Response Body: `fees.ListBillsResponse`
 
 ## Testing
 
+To run the tests for the `fees` service, navigate to the project root and use the script:
+
 ```bash
-encore test ./...
+./scripts/run-tests.sh
 ```
+This script executes `encore test ./services/fees -v` which runs both service integration tests (`service_test.go`) and workflow replay tests (`workflow_test.go`).

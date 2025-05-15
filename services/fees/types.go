@@ -62,13 +62,9 @@ type AddLineItemResponse struct {
 }
 
 // CloseBillResponse is the response payload after closing a bill.
-// It now embeds the Bill type to return the full bill details.
-// TODO: remove ConfirmationMsg as it's less relevant now that we return the full bill.
-// Or, keep it if it's still desired for some UI/logging purpose.
-// For now, we'll keep it but the primary data is the Bill object.
 type CloseBillResponse struct {
-	Bill            // Embed the Bill struct
-	ConfirmationMsg string `json:"confirmationMsg,omitempty"` // Optional message
+	Bill
+	ConfirmationMsg string `json:"confirmationMsg,omitempty"`
 }
 
 // GetBillResponse is the response payload for retrieving a bill.
