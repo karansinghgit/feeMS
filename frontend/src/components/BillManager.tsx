@@ -200,12 +200,30 @@ const BillManager: React.FC = () => {
           <div className="card bill-details-card">
             <h3>Bill Details: {selectedBill.id || 'N/A'}</h3>
             <button className="btn-close-details" onClick={() => setSelectedBill(null)} title="Close details">X</button>
-            <p><strong>Status:</strong> <span className={`status-badge status-${selectedBill.status ? selectedBill.status.toLowerCase() : 'unknown'}`}>{selectedBill.status || 'N/A'}</span></p>
-            <p><strong>Customer ID:</strong> {selectedBill.customerId || 'N/A'}</p>
-            <p><strong>Currency:</strong> {selectedBill.currency || 'N/A'}</p>
-            <p><strong>Total Amount:</strong> {selectedBill.currency || ''} {typeof selectedBill.totalAmount === 'number' ? selectedBill.totalAmount.toFixed(2) : (selectedBill.totalAmount === null || selectedBill.totalAmount === undefined ? 'N/A' : selectedBill.totalAmount)}</p>
-            <p><strong>Created At:</strong> {selectedBill.createdAt ? new Date(selectedBill.createdAt).toLocaleString() : 'N/A'}</p>
-            {selectedBill.closedAt && <p><strong>Closed At:</strong> {new Date(selectedBill.closedAt).toLocaleString()}</p>}
+            
+            <dl className="definition-list">
+              <dt>Status:</dt>
+              <dd><span className={`status-badge status-${selectedBill.status ? selectedBill.status.toLowerCase() : 'unknown'}`}>{selectedBill.status || 'N/A'}</span></dd>
+
+              <dt>Customer ID:</dt>
+              <dd>{selectedBill.customerId || 'N/A'}</dd>
+
+              <dt>Currency:</dt>
+              <dd>{selectedBill.currency || 'N/A'}</dd>
+
+              <dt>Total Amount:</dt>
+              <dd>{selectedBill.currency || ''} {typeof selectedBill.totalAmount === 'number' ? selectedBill.totalAmount.toFixed(2) : (selectedBill.totalAmount === null || selectedBill.totalAmount === undefined ? 'N/A' : selectedBill.totalAmount)}</dd>
+
+              <dt>Created At:</dt>
+              <dd>{selectedBill.createdAt ? new Date(selectedBill.createdAt).toLocaleString() : 'N/A'}</dd>
+
+              {selectedBill.closedAt && (
+                <>
+                  <dt>Closed At:</dt>
+                  <dd>{new Date(selectedBill.closedAt).toLocaleString()}</dd>
+                </>
+              )}
+            </dl>
 
             <h4>Line Items:</h4>
             {selectedBill.lineItems && selectedBill.lineItems.length > 0 ? (

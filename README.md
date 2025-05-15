@@ -1,8 +1,12 @@
 # feeMS - Fees Management Service
 
-This project implements a backend service in Golang to manage bill creation, line item accrual, and bill closure.
+This project implements a service in Golang to manage bill creation, line item accrual, and bill closure.
 
 It uses Encore for the API layer and infrastructure provisioning, and Temporal for durable workflow execution and state management of individual bills.
+
+Also, there's a thin react layer for the frontend.
+
+![feeMS](feeMS.png)
 
 ## High-Level Design Overview
 

@@ -6,8 +6,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f4f7f9;
-  color: #333;
+  background-color: #F8F9FA; /* Light grey background */
+  color: #212529; /* Darker text for better readability */
 }
 
 code {
@@ -20,11 +20,11 @@ code {
 }
 
 .App-header {
-  background-color: #282c34;
+  background-color: #343A40; /* Darker, more modern header */
   padding: 20px;
   color: white;
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 30px; /* Increased margin for better separation */
 }
 
 .App-header h1 {
@@ -63,15 +63,17 @@ main {
 
 /* Card Styling */
 .card {
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  padding: 20px;
+  background-color: #FFFFFF; /* Clean white background for cards */
+  border-radius: 12px; /* Softer, more rounded corners */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Softer, more diffused shadow */
+  padding: 25px; /* Slightly increased padding */
+  border: 1px solid #E9ECEF; /* Lighter border */
 }
 
 .card h2, .card h3, .card h4, .card h5 {
   margin-top: 0;
-  color: #2c3e50;
+  color: #343A40; /* Dark grey for headings, consistent with header */
+  margin-bottom: 1rem; /* Add some space below headings */
 }
 
 /* Form Styling */
@@ -89,18 +91,20 @@ main {
 .bill-form input[type="text"],
 .bill-form input[type="number"],
 .bill-form select {
-  width: calc(100% - 20px); /* Full width minus padding */
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  width: calc(100% - 22px); /* Full width minus padding (increased padding to 11px) */
+  padding: 11px; /* Slightly increased padding */
+  border: 1px solid #CED4DA; /* Standard border color */
+  border-radius: 6px; /* Slightly more rounded corners */
   font-size: 1em;
   box-sizing: border-box;
+  background-color: #FFFFFF; /* Ensure white background */
+  color: #495057; /* Standard input text color */
 }
 
 .bill-form input:focus,
 .bill-form select:focus {
-  border-color: #61dafb;
-  box-shadow: 0 0 0 2px rgba(97, 218, 251, 0.2);
+  border-color: #80bdff; /* Lighter blue for focus, matching Bootstrap */
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); /* Bootstrap-like focus shadow */
   outline: none;
 }
 
@@ -119,30 +123,34 @@ main {
 }
 
 .btn-primary {
-  background-color: #61dafb;
-  color: #282c34;
+  background-color: #007BFF; /* A modern blue */
+  color: #FFFFFF; /* White text for contrast */
 }
 
 .btn-primary:hover {
-  background-color: #4ca8d1;
+  background-color: #0056b3; /* Darker blue on hover */
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .btn-secondary {
-  background-color: #e0e0e0;
-  color: #333;
+  background-color: #F8F9FA; /* Light grey, matching app background */
+  color: #343A40; /* Dark text */
+  border: 1px solid #DEE2E6; /* Light border */
 }
 
 .btn-secondary:hover {
-  background-color: #c7c7c7;
+  background-color: #E9ECEF; /* Slightly darker on hover */
+  border-color: #CED4DA;
 }
 
 .btn-warning {
-  background-color: #f39c12;
-  color: #fff;
+  background-color: #FFC107; /* Standard warning yellow */
+  color: #212529; /* Dark text for contrast */
+  border: 1px solid #FFC107;
 }
 .btn-warning:hover {
-  background-color: #e67e22;
+  background-color: #e0a800; /* Darker yellow on hover */
+  border-color: #d39e00;
 }
 
 .btn:disabled {
@@ -185,21 +193,23 @@ main {
 .bill-item {
   padding: 15px;
   margin-bottom: 10px;
-  border: 1px solid #eee;
-  border-radius: 6px;
+  border: 1px solid #DEE2E6; /* Lighter border */
+  border-radius: 8px; /* Consistent rounded corners */
   cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .bill-item:hover {
-  background-color: #f9f9f9;
-  border-color: #61dafb;
+  background-color: #F8F9FA; /* Very light grey on hover */
+  border-color: #BBDDFF; /* Lighter blue for hover border */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .bill-item.selected {
-  background-color: #e6f7ff;
-  border-left: 4px solid #61dafb;
-  font-weight: bold;
+  background-color: #E7F3FF; /* Lighter, softer blue for selected */
+  border-left: 4px solid #007BFF; /* New primary color for selected indicator */
+  font-weight: 600; /* Keep font weight for emphasis */
+  border-color: #007BFF;
 }
 
 .bill-item p {
@@ -215,11 +225,12 @@ main {
 }
 
 .status-badge {
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 0.8em;
-  font-weight: bold;
+  padding: 4px 10px; /* Adjusted padding for pill shape */
+  border-radius: 12px; /* Pill shape */
+  font-size: 0.75em; /* Slightly smaller font for badges */
+  font-weight: 700; /* Bolder font */
   text-transform: uppercase;
+  letter-spacing: 0.5px; /* Added letter spacing */
 }
 
 .status-badge.status-open {
@@ -245,28 +256,31 @@ main {
   position: absolute;
   top: 15px;
   right: 15px;
-  background: #f0f0f0;
-  border: none;
+  background: #F8F9FA; /* Light background, similar to app bg */
+  border: 1px solid #DEE2E6; /* Light border */
   border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  font-size: 1.2em;
+  width: 32px; /* Slightly larger for better clickability */
+  height: 32px;
+  font-size: 1.1em; /* Adjusted font size */
   font-weight: bold;
-  color: #777;
+  color: #495057; /* Muted text color */
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .btn-close-details:hover {
-  background: #e0e0e0;
-  color: #333;
+  background: #E9ECEF; /* Slightly darker on hover */
+  color: #212529; /* Darker text on hover */
+  border-color: #CED4DA;
 }
 
 .bill-details-card p {
   margin: 8px 0;
   font-size: 1em;
+  padding-bottom: 5px;
 }
 
 .bill-details-card h4 {
@@ -293,16 +307,16 @@ main {
 }
 
 .add-line-item-form-container {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #eee;
+  margin-top: 25px; /* Increased spacing */
+  padding-top: 25px; /* Increased spacing */
+  border-top: 1px solid #E9ECEF; /* Lighter border */
 }
 
 /* Alerts and Notifications */
 .alert {
   padding: 15px;
-  margin: 15px 0;
-  border-radius: 4px;
+  margin: 20px 0; /* Increased vertical margin */
+  border-radius: 8px; /* Consistent with card border-radius */
   border: 1px solid transparent;
 }
 
@@ -345,6 +359,28 @@ main {
   color: #888;
 }
 
+/* Definition list for bill details */
+.definition-list {
+  margin: 1rem 0;
+}
+
+.definition-list dt {
+  font-weight: 600; /* Bold for the term */
+  color: #495057;    /* Slightly muted text color for the term */
+  margin-top: 0.75rem;
+  font-size: 0.9em;
+}
+
+.definition-list dt:first-of-type {
+  margin-top: 0;
+}
+
+.definition-list dd {
+  margin-left: 0; /* Remove default browser indent */
+  margin-bottom: 0.5rem;
+  color: #212529;    /* Standard text color for the description */
+  font-size: 1em;
+}
 
 /* Responsive adjustments (simple example) */
 @media (max-width: 768px) {
